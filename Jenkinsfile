@@ -1,70 +1,70 @@
 pipeline {
     agent any
-
     environment {
-        AWS_DEFAULT_REGION = 'us-east-1'
-        TF_IN_AUTOMATION   = 'true'
+        AWS_REGION = 'us-east-1' 
     }
-
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Terraform Init') {
+        stage('Set AWS Credentials') {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'jenkinstest01'
+                    credentialsId: 'jekinstest01' 
                 ]]) {
-                    sh 'terraform init -reconfigure -input=false'
+                    sh '''
+                    echo "AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID"
+                    aws sts get-caller-identity
+                    '''
                 }
             }
         }
-
-        stage('Terraform Apply') {
+        stage('Checkout Code') {
+            steps {
+       		checkout scm
+    	    }
+        }
+        stage('Initialize Terraform') {
+            steps {
+                sh '''
+                terraform init
+                '''
+            }
+        }
+        stage('Plan Terraform') {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
                     credentialsId: 'jenkinstest01'
                 ]]) {
                     sh '''
-                        terraform plan -out=tfplan
-                        terraform apply -auto-approve tfplan
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    terraform plan -out=tfplan
                     '''
                 }
             }
         }
-
-        stage('Optional Destroy') {
+        stage('Apply Terraform') {
             steps {
-                script {
-                    def destroyChoice = input(
-                        message: 'Do you want to run terraform destroy?',
-                        ok: 'Submit',
-                        parameters: [
-                            choice(
-                                name: 'DESTROY',
-                                choices: ['no', 'yes'],
-                                description: 'Select yes to destroy resources'
-                            )
-                        ]
-                    )
-
-                    if (destroyChoice == 'yes') {
-                        withCredentials([[
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            credentialsId: 'jenkinstest01'
-                        ]]) {
-                            sh 'terraform destroy -auto-approve'
-                        }
-                    } else {
-                        echo "Skipping destroy"
-                    }
+                input message: "Approve Terraform Apply?", ok: "Deploy"
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'jenkinstest01'
+                ]]) {
+                    sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    terraform apply -auto-approve tfplan
+                    '''
                 }
             }
+        }
+    }
+    post {
+        success {
+            echo 'Terraform deployment completed successfully!'
+        }
+        failure {
+            echo 'Terraform deployment failed!'
         }
     }
 }
