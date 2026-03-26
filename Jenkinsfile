@@ -17,10 +17,10 @@ pipeline {
                 }
             }
         }
-    stages {
+    stage {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/aaron-dm-mcdonald/new-jenkins-s3-test.git'
+                git branch: 'main', url: 'https://github.com/WilliamHannah-Tech/new-jenkins-s3-test.git'
             }
         }
 
@@ -100,9 +100,9 @@ pipeline {
     // }
 
     post {
-        sucess {
+        success {
             echo 'Terraform deployment comopleted successfully!'
-    post {
+        }
         failure {
             echo 'Terraform deployment failed!'
         }
