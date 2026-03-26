@@ -17,7 +17,7 @@ pipeline {
                 }
             }
         }
-    stage {
+   
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/WilliamHannah-Tech/new-jenkins-s3-test.git'
