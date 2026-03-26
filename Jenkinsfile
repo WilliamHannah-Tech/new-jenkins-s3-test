@@ -101,7 +101,7 @@ pipeline {
 
     post {
         success {
-            echo 'Terraform deployment comopleted successfully!'
+            echo 'Terraform deployment completed successfully!'
         }
         failure {
             echo 'Terraform deployment failed!'
